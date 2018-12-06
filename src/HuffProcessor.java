@@ -53,6 +53,11 @@ public class HuffProcessor {
 		
 	}
 	
+	/**
+	 * Creates the array of frequencies by reading the bits
+	 * @param in
+	 * @return
+	 */
 	private int[] readForCounts(BitInputStream in) {
 		int[] freq = new int[ALPH_SIZE + 1];
 		
@@ -67,6 +72,12 @@ public class HuffProcessor {
 		return freq;
 	}
 	
+	/**
+	 * Uses a priority queue to construct a tree from the previously created 
+	 * array of frequencies. 
+	 * @param freq - array of frequencies 
+	 * @return
+	 */
 	private HuffNode makeTreeFromCounts(int[] freq) {
 		PriorityQueue<HuffNode> pq = new PriorityQueue<>();
 		
@@ -88,17 +99,31 @@ public class HuffProcessor {
 		return root;
 	}
 	
+	/**
+	 * Creates the encodings. Calls the recursive helper method to do this
+	 * @param root
+	 * @return
+	 */
 	private String[] makeCodingsFromTree(HuffNode root) {
 		String[] encodings = new String[ALPH_SIZE + 1];
 		codingHelper(root, "", encodings);
 		return encodings;
 	}
 	
+	/**
+	 * Similar to the LeafTrails APT. Creates a path based on the previously 
+	 * designed tree by adding 0's and 1's. Uses recursion to complete this path
+	 * @param root
+	 * @return
+	 */
 	private void codingHelper(HuffNode root, String path, String[] encodings) {
 		if(root == null) {  return;  }
 		
 		if(root.myLeft == null && root.myRight == null) {
 			encodings[root.myValue] = path;
+			if(myDebugLevel >= DEBUG_HIGH) {
+				System.out.println("encoding for " + root.myValue + " is " + path);
+			}
 			return;
 		}
 		
@@ -107,6 +132,12 @@ public class HuffProcessor {
 		
 	}
 
+	/**
+	 * Recursive method to write the tree. Calls itself if the value is not a 
+	 * leaf (pre order traversal)
+	 * @param root
+	 * @param out
+	 */
 	private void writeHeader(HuffNode root, BitOutputStream out) {
 		if(root.myLeft != null && root.myRight != null) { //internal node
 			out.writeBits(1, 0);
@@ -119,6 +150,13 @@ public class HuffProcessor {
 		}
 	}
 	
+	/**
+	 * Writes the encoded bits to the output. This method uses the encodings to 
+	 * write the bits, and writes a PSEUDO_EOF character at the end. 
+	 * @param encoding
+	 * @param in
+	 * @param out
+	 */
 	private void writeCompressedBits(String[] encoding, BitInputStream in, BitOutputStream out) {
 		while(true) {
 			int val = in.readBits(BITS_PER_INT);
@@ -151,6 +189,12 @@ public class HuffProcessor {
 		out.close();
 	}
 	
+	/**
+	 * This method reads the tree header and throws an exception if needed. This
+	 * method is recursive, and uses a pre-order traversal. 
+	 * @param in
+	 * @return
+	 */
 	private HuffNode readTreeHeader(BitInputStream in) {
 		int bit = in.readBits(1);
 		if(bit == -1) {
@@ -167,6 +211,14 @@ public class HuffProcessor {
 		}
 	}
 	
+	/**
+	 * This method reads the compressed bits, and throws an exception if needed.
+	 * This method goes through the tree and writes the value of the node (once 
+	 * it reaches a leaf) to the output. 
+	 * @param root
+	 * @param in
+	 * @param out
+	 */
 	private void readCompressedBits(HuffNode root, BitInputStream in, BitOutputStream out) {
 		HuffNode current = root;
 		while(true) {
